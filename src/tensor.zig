@@ -6,16 +6,35 @@ pub const Dimension = struct {
 };
 
 pub fn Tensor(comptime T: type, comptime rank: usize, comptime dimensions: [rank]Dimension) type {
-    var tensor = struct {
+    comptime var tensor_size: usize = 1;
+    comptime var tensor_shape: [rank]usize = undefined;
+    comptime var tensor_strides: [rank]usize = undefined;
+
+    for (dimensions, 0..) |dimension, i| {
+        tensor_size *= dimension.len;
+        tensor_shape[i] = dimension.len;
+        tensor_strides[i] = dimension.stride;
+    }
+
+    return struct {
         pub const Self = @This();
         pub const ElementType = T;
-        pub const Inner = dimensions[1..];
 
-        comptime size: usize = undefined,
-        comptime shape: [rank]usize = undefined,
-        comptime stride: [rank]usize = undefined,
+        pub const size = tensor_size;
+        pub const shape = tensor_shape;
+        pub const strides = tensor_strides;
+        // comptime is_contiguous: bool = undefined,
 
         data: *[Self.size]T,
+
+        pub fn Inner(depth: usize) type {
+            std.debug.assert(depth <= rank);
+            if ((dimensions.len - depth) > 0) {
+                return Tensor(T, dimensions.len - depth, dimensions[depth..]);
+            } else {
+                return *T;
+            }
+        }
 
         pub fn Permute(comptime indices: [rank]usize) type {
             // verify permute indices are unique and in bounds
@@ -44,6 +63,10 @@ pub fn Tensor(comptime T: type, comptime rank: usize, comptime dimensions: [rank
             return Permute(indices);
         }
 
+        // pub fn View(comptime shape: anytype) type {
+        //
+        // }
+
         pub fn fill(self: Self, value: T) void {
             @memset(self.data, value);
         }
@@ -56,23 +79,26 @@ pub fn Tensor(comptime T: type, comptime rank: usize, comptime dimensions: [rank
             return .{ .data = self.data };
         }
 
+        pub fn offset(indices: anytype) usize {
+            var flattened: usize = 0;
+            for (indices, 0..) |index, i| {
+                const stride = dimensions[i].stride;
+                flattened += index * stride;
+            }
+        }
+
+        pub fn get(self: Self, indices: anytype) Inner(indices.len) {
+            return .{ .data = self.data[offset(indices)] };
+        }
         //     pub fn offset(indices: []usize) usize {
         //     std.debug.assert(indices.len <= rank);
         //
         // }
     };
-
-    for (dimensions, 0..) |dimension, i| {
-        tensor.size *= dimension.len;
-        tensor.shape[i] = dimension.len;
-        tensor.strides[i] = dimension.stride;
-    }
-
-    return tensor;
 }
 
 pub fn Matrix(comptime T: type, comptime rows: usize, comptime cols: usize) type {
-    return Tensor(T, &.{ .{ rows, cols }, .{ cols, 1 } });
+    return Tensor(T, 2, .{ .{ .len = rows, .stride = cols }, .{ .len = cols, .stride = 1 } });
 }
 
 pub const Order = enum {

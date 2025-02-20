@@ -1,24 +1,44 @@
 const std = @import("std");
+const jazz = @import("root.zig");
+
+const Matrix = jazz.Matrix;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    var allocator = std.heap.GeneralPurposeAllocator(.{}){};
+    defer std.debug.assert(allocator.deinit() == .ok);
+    const gpa = allocator.allocator();
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    const m = 512;
+    const n = 1024;
+    const k = 512;
+    const buffer1 = try gpa.alloc(f32, m * n);
+    defer gpa.free(buffer1);
+    const a: Matrix(f32, m, n) = .{ .data = buffer1[0 .. m * n] };
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    const buffer2 = try gpa.alloc(f32, n * k);
+    defer gpa.free(buffer2);
+    const b: Matrix(f32, n, k) = .{ .data = buffer2[0 .. n * k] };
 
-    try bw.flush(); // don't forget to flush!
-}
+    for (0..m * n) |i| {
+        buffer1[i] = @floatFromInt(i);
+    }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+    for (0..n * k) |i| {
+        buffer2[i] = @floatFromInt(i);
+    }
+
+    const buffer3 = try gpa.alloc(f32, m * k);
+    defer gpa.free(buffer3);
+    const c: Matrix(f32, m, k) = .{ .data = buffer3[0 .. m * k] };
+    jazz.mul(a, b, c);
+
+    // var i: usize = 0;
+    // for (0..m) |_| {
+    //     for (0..k) |_| {
+    //         std.debug.print("{d} ", .{c.data[i]});
+    //         i += 1;
+    //     }
+    //
+    //     std.debug.print("\n", .{});
+    // }
 }

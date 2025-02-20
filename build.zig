@@ -24,6 +24,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    lib.linkLibC();
+    lib.addObjectFile(.{ .cwd_relative = "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_intel_ilp64.a" });
+    lib.addObjectFile(.{ .cwd_relative = "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_gnu_thread.a" });
+    lib.addObjectFile(.{ .cwd_relative = "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_core.a" });
+    lib.linkSystemLibrary("gomp");
+    lib.linkSystemLibrary("pthread");
+    lib.linkSystemLibrary("m");
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
@@ -36,6 +43,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    exe.linkLibC();
+    exe.addObjectFile(.{ .cwd_relative = "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_intel_ilp64.a" });
+    exe.addObjectFile(.{ .cwd_relative = "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_gnu_thread.a" });
+    exe.addObjectFile(.{ .cwd_relative = "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_core.a" });
+    exe.linkSystemLibrary("gomp");
+    exe.linkSystemLibrary("pthread");
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
