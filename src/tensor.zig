@@ -1,5 +1,14 @@
 const std = @import("std");
 
+pub fn View(tensor_rank: usize) type {
+    return struct {
+        pub const rank = tensor_rank;
+
+        shape: [tensor_rank]usize,
+        stride: [tensor_rank]usize,
+    };
+}
+
 pub const Dimension = struct {
     len: usize,
     stride: usize,
